@@ -17,6 +17,8 @@ public class Object3D {
     private Texture[] mTextures = null;
     private Material mMaterial = null;
     private Shader mShader = null;
+    private Physics mPhysics = null;
+    private boolean mVisible = true;
 
     private float[] mMVPMatrix = new float[16];
     private float[] mModelMatrix = new float[16];
@@ -49,11 +51,12 @@ public class Object3D {
             mActiveTexture = 0;
         }
         mOrientation = new Orientation();
+        mPhysics = new Physics();
     }
 
     public static void checkGLError(String glOperation) {
         int error;
-        while((error = GLES20.glGetError()) != GLES20.GL_NO_ERROR) {
+        while ((error = GLES20.glGetError()) != GLES20.GL_NO_ERROR) {
             Log.e(TAG, glOperation + " IN CHECKGLERROR() : glError " + GLU.gluErrorString(error));
             throw new RuntimeException(glOperation + ": glError " + error);
         }
@@ -126,10 +129,10 @@ public class Object3D {
 
         mShader.setShaderUniformVariableValue("uEyePosition", eyePos);
 
-        mShader.setShaderVariableValueFloatMatrix4Array("NormalMatrix", 1, false, normalMatrix,0);
-        mShader.setShaderVariableValueFloatMatrix4Array("uModelMatrix", 1, false, modelMatrix,0);
-        mShader.setShaderVariableValueFloatMatrix4Array("uViewMatrix", 1, false, viewMatrix,0);
-        mShader.setShaderVariableValueFloatMatrix4Array("uModelViewMatrix", 1, false, modelViewMatrix,0);
+        mShader.setShaderVariableValueFloatMatrix4Array("NormalMatrix", 1, false, normalMatrix, 0);
+        mShader.setShaderVariableValueFloatMatrix4Array("uModelMatrix", 1, false, modelMatrix, 0);
+        mShader.setShaderVariableValueFloatMatrix4Array("uViewMatrix", 1, false, viewMatrix, 0);
+        mShader.setShaderVariableValueFloatMatrix4Array("uModelViewMatrix", 1, false, modelViewMatrix, 0);
 
         if (mMaterial != null) {
             mShader.setShaderUniformVariableValue("uMatEmissive", mMaterial.getEmissive());
@@ -202,7 +205,50 @@ public class Object3D {
     }
 
     public void drawObject(Camera camera, PointLight pointLight) {
-        drawObject(camera, pointLight, mOrientation.getPosition(), mOrientation.getRotationAxis(), mOrientation.getScale());
+        if (mVisible) {
+            drawObject(camera, pointLight, mOrientation.getPosition(), mOrientation.getRotationAxis(), mOrientation.getScale());
+        }
+    }
+
+    public void setVisibility(boolean visible) {
+        mVisible = visible;
+    }
+
+    public boolean isVisible() {
+        return mVisible;
+    }
+
+    public Physics getObjectPhysics() {
+        return mPhysics;
+    }
+
+    private void updateObjectPhysics() {
+        mPhysics.updatePhysicsObject(mOrientation);
+    }
+
+    public void updateObject3d() {
+        if (mVisible) {
+            updateObjectPhysics();
+        }
+    }
+
+    public float getRadius() {
+        if (mMeshEx != null) {
+            return
+                    mMeshEx.getRadius();
+        }
+        return -1;
+    }
+
+    public float getScaledRadius() {
+        float rawRadius = getRadius();
+
+        Vector3 objectScale = mOrientation.getScale();
+        float largestScaleFactor = Math.max(objectScale.x,objectScale.y);
+        largestScaleFactor = Math.max(largestScaleFactor,objectScale.z);
+        return rawRadius * largestScaleFactor;
+
+
     }
 }
 

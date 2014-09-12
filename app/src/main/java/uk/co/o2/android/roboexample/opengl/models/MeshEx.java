@@ -16,9 +16,12 @@ public class MeshEx {
     private ShortBuffer mDrawListBuffer = null; // Holds index values into the vertex buffer that indicate
     // the order in which to draw the vertices.
 
+    private Vector3 mSize = new Vector3(0, 0, 0);
+    private float mRadius = 0;
+    private float mRadiusAverage = 0;
     private int mCoordsPerVertex = 3;
     private static final int FLOAT_SIZE_BYTES = 4;
-    private int m_VertexCount = 0;
+    private int mVertexCount = 0;
     private int mMeshVerticesDataStrideBytes = mCoordsPerVertex * FLOAT_SIZE_BYTES;
     private int mMeshVerticesDataPosOffset = 0;
     private int mMeshVerticesDataUVOffset = -1;
@@ -59,10 +62,49 @@ public class MeshEx {
         mVertexBuffer.put(vertices);
         mVertexBuffer.position(0);
 
-        m_VertexCount = vertices.length / mCoordsPerVertex;
+        mVertexCount = vertices.length / mCoordsPerVertex;
 
         // Initialize DrawList Buffer
         mDrawListBuffer = ShortBuffer.wrap(drawOrder);
+        calculateRadius();
+
+    }
+
+    private void calculateRadius() {
+        float xMin = Float.MAX_VALUE;
+        float yMin = Float.MAX_VALUE;
+        float zMin = Float.MAX_VALUE;
+
+        float xMax = Float.MIN_VALUE;
+        float yMax = Float.MIN_VALUE;
+        float zMax = Float.MIN_VALUE;
+
+        int elementPos = mMeshVerticesDataPosOffset;
+
+        for (int i = 0; i < mVertexCount; i++) {
+            float x = mVertexBuffer.get(elementPos);
+            float y = mVertexBuffer.get(elementPos + 1);
+            float z = mVertexBuffer.get(elementPos + 2);
+            xMax = Math.max(xMax, x);
+            yMax = Math.max(yMax, y);
+            zMax = Math.max(zMax, z);
+
+            xMin = Math.min(xMin, x);
+            yMin = Math.min(yMin, y);
+            zMin = Math.min(zMin, z);
+
+            elementPos += mCoordsPerVertex;
+        }
+
+        mSize.x = Math.abs(xMax - xMin);
+        mSize.y = Math.abs(yMax - yMin);
+        mSize.z = Math.abs(zMax - zMin);
+
+        float largestSize = Math.max(mSize.x, mSize.y);
+        largestSize = Math.max(largestSize, mSize.z);
+        mRadius = largestSize / 2.0f;
+        mRadiusAverage = (mSize.x + mSize.y + mSize.z) / 3.0f;
+        mRadiusAverage /= 2.0f;
 
     }
 
@@ -141,4 +183,7 @@ public class MeshEx {
         }
     }
 
+    public float getRadius() {
+        return mRadius;
+    }
 }
